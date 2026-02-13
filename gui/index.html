@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Analytics Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b border-slate-800 pb-6">
+            <div>
+                <h1 class="text-3xl font-black text-white tracking-tighter">COGNITIVE <span class="text-blue-500">INSIGHTS</span></h1>
+                <p class="text-slate-400 text-sm">Real-time behavior & aggregate session analytics</p>
+            </div>
+            <div id="status-badge" class="px-6 py-2 rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm uppercase">
+                Connecting...
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Thinking Time</p>
+                <h2 id="ana-think-time" class="text-3xl font-mono text-blue-400">0.0s</h2>
+            </div>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg border-l-4 border-l-red-500">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Confused Time</p>
+                <h2 id="ana-confused-time" class="text-3xl font-mono text-red-500">0.0s</h2>
+            </div>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Total Backspaces</p>
+                <h2 id="ana-backspaces" class="text-3xl font-mono text-emerald-400">0</h2>
+            </div>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+                <p class="text-slate-500 text-xs font-bold uppercase mb-2">Active Sessions</p>
+                <div class="flex gap-4">
+                    <div><span class="text-[10px] text-slate-500">THINK</span> <p id="ana-think-sess" class="text-xl font-mono">0</p></div>
+                    <div class="border-l border-slate-700 pl-4"><span class="text-[10px] text-slate-500">CONF</span> <p id="ana-conf-sess" class="text-xl font-mono text-red-400">0</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Live Behavior Pulse (Backspace vs Scroll)</h3>
+                <div class="h-[300px]"><canvas id="lineChart"></canvas></div>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl text-center">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Thinking vs Confused (Sessions)</h3>
+                <div class="h-[300px] flex items-center justify-center">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MONITOR_ENDPOINT = 'http://127.0.0.1:8000/monitor';
+        const ANALYTICS_ENDPOINT = 'http://127.0.0.1:8000/analytics';
+
+        // Initialize Charts
+        const lineChart = new Chart(document.getElementById('lineChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'Backspace', borderColor: '#ef4444', data: [], tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(239, 68, 68, 0.05)' },
+                { label: 'Scroll', borderColor: '#3b82f6', data: [], tension: 0.4, pointRadius: 0 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { grid: { color: '#1e293b' } } }, plugins: { legend: { display: false } } }
+        });
+
+        const barChart = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: { labels: ['Thinking', 'Confused'], datasets: [{ data: [0, 0], backgroundColor: ['#3b82f6', '#ef4444'], borderRadius: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' } } } }
+        });
+
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch(ANALYTICS_ENDPOINT);
+                const ana = await res.json();
+                
+                document.getElementById('ana-think-time').innerText = ana.thinking_time_sec.toFixed(1) + 's';
+                document.getElementById('ana-confused-time').innerText = ana.confused_time_sec.toFixed(1) + 's';
+                document.getElementById('ana-backspaces').innerText = ana.backspaces;
+                document.getElementById('ana-think-sess').innerText = ana.thinking_sessions;
+                document.getElementById('ana-conf-sess').innerText = ana.confused_sessions;
+
+                // Sync bar chart with aggregate session numbers
+                barChart.data.datasets[0].data = [ana.thinking_sessions, ana.confused_sessions];
+                barChart.update('none');
+            } catch (e) { console.error("Analytics endpoint error"); }
+        }
+
+        async function fetchMonitor() {
+            try {
+                const res = await fetch(MONITOR_ENDPOINT);
+                const data = await res.json();
+                
+                const badge = document.getElementById('status-badge');
+                badge.innerText = data.state;
+                badge.className = `px-6 py-2 rounded-lg border font-mono text-sm uppercase ${
+                    data.state === 'confused' ? 'bg-red-900/20 border-red-500 text-red-500 animate-pulse' : 
+                    data.state === 'thinking' ? 'bg-blue-900/20 border-blue-500 text-blue-500' : 'bg-slate-900 border-slate-700 text-slate-400'
+                }`;
+
+                // Update Line Chart
+                const now = new Date().toLocaleTimeString();
+                lineChart.data.labels.push(now);
+                lineChart.data.datasets[0].data.push(data.features?.backspace_rate || 0);
+                lineChart.data.datasets[1].data.push(data.features?.scroll_rate || 0);
+                if (lineChart.data.labels.length > 30) {
+                    lineChart.data.labels.shift();
+                    lineChart.data.datasets.forEach(d => d.data.shift());
+                }
+                lineChart.update('none');
+            } catch (e) { console.error("Monitor endpoint error"); }
+        }
+
+        // Loop both endpoints
+        setInterval(() => {
+            fetchAnalytics();
+            fetchMonitor();
+        }, 1000);
+    </script>
+</body>
+</html>

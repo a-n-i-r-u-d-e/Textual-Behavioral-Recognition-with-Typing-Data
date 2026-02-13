@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confusion Monitor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🧠 Cognitive State Dashboard</h1>
+
+<div id="state" class="state-box idle">IDLE</div>
+
+<div class="panel">
+    <h2>Live Features</h2>
+    <pre id="features">Waiting...</pre>
+</div>
+
+<div class="panel">
+    <h2>Training Stats</h2>
+    <pre id="stats">Loading...</pre>
+</div>
+
+<div class="panel">
+    <h2>Self-Report Feedback</h2>
+    <button onclick="sendFeedback('fluent')">Fluent</button>
+    <button onclick="sendFeedback('thinking')">Thinking</button>
+    <button onclick="sendFeedback('confused')">Confused</button>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

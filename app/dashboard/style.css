@@ -1,0 +1,33 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #eee;
+    padding: 20px;
+}
+
+.state-box {
+    font-size: 24px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.idle { background: #555; }
+.fluent { background: #2ecc71; }
+.thinking { background: #f1c40f; }
+.confused { background: #e74c3c; }
+
+.panel {
+    background: #1c1c1c;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+}
+
+button {
+    padding: 10px 15px;
+    margin-right: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
